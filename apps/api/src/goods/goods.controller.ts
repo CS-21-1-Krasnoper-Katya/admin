@@ -22,6 +22,11 @@ export class GoodsController {
         return await this.goodsService.getAllGoods();
     }
 
+    @Get(':partitionKey')
+    async getAllInCategory(@Param('partitionKey') partitionKey: string) {
+        return await this.goodsService.getAllGoodsInCategory(partitionKey);
+    }
+    
     @Post()
     async create(@Body() createGoodDto: CreateGoodDto) {
         return await this.goodsService.createGood(createGoodDto);

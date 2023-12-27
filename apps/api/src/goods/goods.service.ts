@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {TableServiceClient, TableClient} from '@azure/data-tables';
+import {TableServiceClient, TableClient, odata} from '@azure/data-tables';
 import { CreateGoodDto } from './dto/create-good.dto';
 import { UniqueKeyService } from 'src/unique-key/unique-key.service';
 import { EditGoodDto } from './dto/edit-good.dto';
@@ -31,6 +31,18 @@ export class GoodsService {
     async getAllGoods() {
         const result = [];
         const entitiesIter = this.tableClient.listEntities();
+        for await (const entity of entitiesIter) {
+            result.push(entity);
+        }
+        console.log(result);
+        return result;
+    }
+    async getAllGoodsInCategory(partitionKey: string) {
+        const result = [];
+        console.log(partitionKey);
+        const entitiesIter = this.tableClient.listEntities({
+            queryOptions: { filter: odata`PartitionKey eq ${partitionKey}` }
+        });
         for await (const entity of entitiesIter) {
             result.push(entity);
         }
