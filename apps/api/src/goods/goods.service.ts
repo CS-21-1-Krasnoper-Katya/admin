@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {TableServiceClient, TableClient, odata} from '@azure/data-tables';
+import { QueueServiceClient } from '@azure/storage-queue';
 import { CreateGoodDto } from './dto/create-good.dto';
 import { UniqueKeyService } from 'src/unique-key/unique-key.service';
 import { EditGoodDto } from './dto/edit-good.dto';
@@ -12,10 +13,12 @@ export class GoodsService {
 
     private serviceClient: TableServiceClient;
     private tableClient: TableClient;
+    private queueServiceClient: QueueServiceClient;
 
     constructor(private readonly uniqueKeyService: UniqueKeyService) {
         this.serviceClient = TableServiceClient.fromConnectionString(this.connectionString, {allowInsecureConnection: true});
         this.tableClient = TableClient.fromConnectionString(this.connectionString, this.tableName, {allowInsecureConnection: true});
+        this.queueServiceClient = QueueServiceClient.fromConnectionString(this.connectionString);
     }
     
     async createTableIfNotExists() {
@@ -53,6 +56,7 @@ export class GoodsService {
     async createGood(createGoodDto: CreateGoodDto) {
         const partitionKey = createGoodDto.category;
         const rowKey = this.uniqueKeyService.generateKey();
+        this.sendMessage({partitionKey, rowKey, imgUrl: createGoodDto.imgUrl})
         await this.tableClient.createEntity({
             partitionKey,
             rowKey,
@@ -78,5 +82,14 @@ export class GoodsService {
 
     async deleteGood(deleteGoodDto: DeleteGoodDto) {
         await this.tableClient.deleteEntity(deleteGoodDto.partitionKey, deleteGoodDto.rowKey);
+    }
+
+    async sendMessage(goodData={}) {
+        const queueName = 'convert';
+        const queueClient = this.queueServiceClient.getQueueClient(queueName);
+        const sendMessageResponse = await queueClient.sendMessage(JSON.stringify(goodData));
+        console.log(
+            `Sent message successfully, service assigned message Id: ${sendMessageResponse.messageId}, service assigned request Id: ${sendMessageResponse.requestId}`
+          );
     }
 }
