@@ -77,6 +77,7 @@ export class GoodsService {
                 ...editGoodDto
             };
             await this.tableClient.updateEntity(entity, "Replace");
+            this.sendMessage({partitionKey, rowKey, imgUrl: editGoodDto.imgUrl})
         }
     }
 
